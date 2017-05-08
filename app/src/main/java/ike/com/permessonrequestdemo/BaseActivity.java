@@ -9,68 +9,48 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends BaseActivity implements View.OnClickListener {
-    private Button btn_take_pic;
-    private Button btn_read_sd;
+/**
+ * Created by dell on 2017/5/8.
+ */
+
+public class BaseActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_PIC=0;
     private static final String Tag="MainActivity";
     private List<String> denyPermission=new ArrayList<>();//被拒绝的权限集合
+    List<String> requestPermission;
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        initView();
     }
-
-    private void initView() {
-        btn_take_pic= (Button) findViewById(R.id.btn_take_pic);
-        btn_read_sd= (Button) findViewById(R.id.btn_read_sd);
-        btn_read_sd.setOnClickListener(this);
-        btn_take_pic.setOnClickListener(this);
-    }
-
-    @Override
-    public void onClick(View view) {
-        switch (view.getId()){
-            case R.id.btn_read_sd:
-
-                break;
-            case R.id.btn_take_pic:
-                List<String> per=new ArrayList<>();
-                per.add(Manifest.permission.CAMERA);
-                per.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-                per.add(Manifest.permission.CALL_PHONE);
-                checkAndRequestPermission(per);
-                break;
+    protected void checkAndRequestPermission(List<String> requestPermission) {
+        this.requestPermission=requestPermission;
+        if (requestPermission.size()==0){
+            return;
+        }
+        String[] checkHasPermission = checkHasPermission(requestPermission);
+        if (checkHasPermission.length>0){
+            ActivityCompat.requestPermissions(this,checkHasPermission,REQUEST_CODE_PIC);
         }
     }
-
-//    private void checkAndRequestPermission() {
-//        String[] checkHasPermission = checkHasPermission(Manifest.permission.CAMERA,Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.CALL_PHONE);
-//        if (checkHasPermission.length>0){
-//            ActivityCompat.requestPermissions(this,checkHasPermission,REQUEST_CODE_PIC);
-//        }
-//    }
 
     /**
      * 检查是否有该权限
      * @param permessions
      */
-    private String[] checkHasPermission(String... permessions){
-         List<String> denyPermissions=new ArrayList<>();//没有被授权的权限集合
+    private String[] checkHasPermission(List<String> permessions){
+        List<String> denyPermissions=new ArrayList<>();//没有被授权的权限集合
         for (String permission:permessions) {
             //未获得权限
             if (ContextCompat.checkSelfPermission(this, permission)!= PackageManager.PERMISSION_GRANTED){
@@ -98,7 +78,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     }
                 }
                 if (denyPermission.isEmpty()){
-                    Toast.makeText(MainActivity.this,"拍照授权成功",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this,"拍照授权成功",Toast.LENGTH_SHORT).show();
                 }else {
                     showNoticeDialog();
 
@@ -135,24 +115,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                         if (isAwaysDeny){//表示用户勾选了权限的不再提醒，此时授权应当开启设置界面进行授权
                             isAwaysDeny=false;
                             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                            Uri uri = Uri.fromParts("package", MainActivity.this.getPackageName(), null);
+                            Uri uri = Uri.fromParts("package", BaseActivity.this.getPackageName(), null);
                             intent.setData(uri);
-                            MainActivity.this.startActivityForResult(intent, 1);
+                            BaseActivity.this.startActivityForResult(intent, 1);
 
                         }else {
-                           // checkAndRequestPermission();
+                            checkAndRequestPermission(requestPermission);
                         }
 
                     }
                 })
-                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        alertDialog.dismiss();
-                    }
-                });
-        alertDialog = builder.create();
-        alertDialog.show();
+                .setNegativeButton("取消", null).create().show();
         denyPermission.clear();
+        Log.e(Tag,"显示完毕");
     }
 }
